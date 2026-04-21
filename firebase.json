@@ -1,0 +1,55 @@
+{
+  "flutter": {
+    "platforms": {
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "smart-plant-595ab",
+          "configurations": {
+            "android": "1:1037719364189:android:da1cde5d194ff44f5de3b4",
+            "ios": "1:1037719364189:ios:05ca47bf6c5d4eb25de3b4",
+            "macos": "1:1037719364189:ios:05ca47bf6c5d4eb25de3b4",
+            "web": "1:1037719364189:web:d44af9e6c0f4c7475de3b4",
+            "windows": "1:1037719364189:web:529c1617bec28ac95de3b4"
+          }
+        }
+      },
+      "android": {
+        "default": {
+          "projectId": "smart-plant-595ab",
+          "appId": "1:1037719364189:android:da1cde5d194ff44f5de3b4",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "ios": {
+        "default": {
+          "projectId": "smart-plant-595ab",
+          "appId": "1:1037719364189:ios:05ca47bf6c5d4eb25de3b4",
+          "uploadDebugSymbols": false,
+          "fileOutput": "ios/Runner/GoogleService-Info.plist"
+        }
+      },
+      "macos": {
+        "default": {
+          "projectId": "smart-plant-595ab",
+          "appId": "1:1037719364189:ios:05ca47bf6c5d4eb25de3b4",
+          "uploadDebugSymbols": false,
+          "fileOutput": "macos/Runner/GoogleService-Info.plist"
+        }
+      }
+    }
+  },
+  "functions": [
+    {
+      "codebase": "default",
+      "disallowLegacyRuntimeConfig": true,
+      "ignore": [
+        "node_modules",
+        ".git",
+        "firebase-debug.log",
+        "firebase-debug.*.log",
+        "*.local"
+      ],
+      "source": "functions"
+    }
+  ]
+}
