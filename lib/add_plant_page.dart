@@ -32,9 +32,9 @@ class _AddPlantPageState extends State<AddPlantPage> {
     final uid = user?.uid;
 
     if (uid == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Not logged in.")),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("Not logged in.")));
       return;
     }
 
@@ -46,14 +46,14 @@ class _AddPlantPageState extends State<AddPlantPage> {
           .doc(uid)
           .collection('plants')
           .add({
-        'name': _plantName.text.trim(),
-        'species': _species.text.trim(),
-        'location': _location,
-        'profile': _profile,
+            'name': _plantName.text.trim(),
+            'species': _species.text.trim(),
+            'location': _location,
+            'profile': _profile,
 
-        'createdAt': FieldValue.serverTimestamp(),
-        'updatedAt': FieldValue.serverTimestamp(),
-      }).timeout(const Duration(seconds: 8));
+            'createdAt': FieldValue.serverTimestamp(),
+            'updatedAt': FieldValue.serverTimestamp(),
+          });
 
       debugPrint("Saved plant doc: ${docRef.id}");
 
@@ -63,15 +63,13 @@ class _AddPlantPageState extends State<AddPlantPage> {
       debugPrint("SAVE PLANT ERROR: $e");
 
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Failed to save: $e")),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Failed to save: $e")));
     } finally {
       if (mounted) setState(() => _loading = false);
     }
   }
-
-  @override
 
   Widget _inputField({
     required TextEditingController controller,
@@ -105,23 +103,32 @@ class _AddPlantPageState extends State<AddPlantPage> {
     required Function(String?) onChanged,
   }) {
     return DropdownButtonFormField<String>(
-      value: value,
+      initialValue: value,
+      isExpanded: true,
+      icon: const Icon(Icons.keyboard_arrow_down_rounded),
       decoration: InputDecoration(
         labelText: label,
-        prefixIcon: Icon(icon),
+        prefixIcon: Icon(icon, color: Colors.green),
         filled: true,
-        fillColor: Colors.grey[100],
+        fillColor: const Color(0xFFF7F7F7),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 16,
+        ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
           borderSide: BorderSide.none,
         ),
       ),
+      dropdownColor: Colors.white,
+      borderRadius: BorderRadius.circular(14),
+      style: const TextStyle(fontSize: 16, color: Colors.black87),
       items: items,
       onChanged: onChanged,
     );
   }
 
-
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7F6),
@@ -147,7 +154,7 @@ class _AddPlantPageState extends State<AddPlantPage> {
                   borderRadius: BorderRadius.circular(20),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
+                      color: Colors.black.withValues(alpha: 0.05),
                       blurRadius: 12,
                       offset: const Offset(0, 6),
                     ),
@@ -159,7 +166,6 @@ class _AddPlantPageState extends State<AddPlantPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-
                       // 🌱 HEADER
                       const Text(
                         "Add New Plant 🌿",
@@ -197,9 +203,36 @@ class _AddPlantPageState extends State<AddPlantPage> {
                         icon: Icons.tune,
                         value: _profile,
                         items: const [
-                          DropdownMenuItem(value: "Succulent", child: Text("Succulent 🌵")),
-                          DropdownMenuItem(value: "Tropical", child: Text("Tropical 🌿")),
-                          DropdownMenuItem(value: "Flowering", child: Text("Flowering 🌸")),
+                          DropdownMenuItem(
+                            value: "Succulent",
+                            child: Row(
+                              children: [
+                                Text("🌵"),
+                                SizedBox(width: 10),
+                                Text("Succulent"),
+                              ],
+                            ),
+                          ),
+                          DropdownMenuItem(
+                            value: "Tropical",
+                            child: Row(
+                              children: [
+                                Text("🌿"),
+                                SizedBox(width: 10),
+                                Text("Tropical"),
+                              ],
+                            ),
+                          ),
+                          DropdownMenuItem(
+                            value: "Flowering",
+                            child: Row(
+                              children: [
+                                Text("🌸"),
+                                SizedBox(width: 10),
+                                Text("Flowering"),
+                              ],
+                            ),
+                          ),
                         ],
                         onChanged: (v) => setState(() => _profile = v!),
                       ),
@@ -212,8 +245,14 @@ class _AddPlantPageState extends State<AddPlantPage> {
                         icon: Icons.place_outlined,
                         value: _location,
                         items: const [
-                          DropdownMenuItem(value: "Indoor", child: Text("Indoor")),
-                          DropdownMenuItem(value: "Outdoor", child: Text("Outdoor")),
+                          DropdownMenuItem(
+                            value: "Indoor",
+                            child: Text("Indoor"),
+                          ),
+                          DropdownMenuItem(
+                            value: "Outdoor",
+                            child: Text("Outdoor"),
+                          ),
                         ],
                         onChanged: (v) => setState(() => _location = v!),
                       ),

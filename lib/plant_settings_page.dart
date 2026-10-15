@@ -36,15 +36,23 @@ class _PlantSettingsPageState extends State<PlantSettingsPage> {
     _speciesController.text = widget.species;
     _location = widget.location.isNotEmpty ? widget.location : "Indoor";
     _profile = widget.profile.isNotEmpty ? widget.profile : "Tropical";
+  }
 
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _speciesController.dispose();
+    super.dispose();
   }
 
   Future<void> _showDeleteDialog() async {
     showDialog(
       context: context,
-      barrierColor: Colors.black.withOpacity(0.3),
+      barrierColor: Colors.black.withValues(alpha: 0.3),
       builder: (_) => MediaQuery(
-        data: MediaQuery.of(context).copyWith(textScaleFactor: 1.0), // 👈 FIX
+        data: MediaQuery.of(
+          context,
+        ).copyWith(textScaler: TextScaler.noScaling), // 👈 FIX
         child: Center(
           child: Container(
             width: 350,
@@ -62,10 +70,7 @@ class _PlantSettingsPageState extends State<PlantSettingsPage> {
 
                 const Text(
                   "Delete Plant",
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                 ),
 
                 const SizedBox(height: 10),
@@ -110,9 +115,17 @@ class _PlantSettingsPageState extends State<PlantSettingsPage> {
   }
 
   Future<void> _save() async {
+    if (_loading) return;
+    if (_nameController.text.trim().isEmpty ||
+        _speciesController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Plant name and type are required.')),
+      );
+      return;
+    }
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
     setState(() => _loading = true);
-
-    final uid = FirebaseAuth.instance.currentUser!.uid;
 
     try {
       await FirebaseFirestore.instance
@@ -121,35 +134,50 @@ class _PlantSettingsPageState extends State<PlantSettingsPage> {
           .collection('plants')
           .doc(widget.plantId)
           .update({
-        'name': _nameController.text.trim(),
-        'location': _location,
-        'species': _speciesController.text.trim(), 
-        'profile': _profile,
-      });
+            'name': _nameController.text.trim(),
+            'location': _location,
+            'species': _speciesController.text.trim(),
+            'profile': _profile,
+            'updatedAt': FieldValue.serverTimestamp(),
+          });
 
       if (!mounted) return;
       Navigator.pop(context);
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Failed to update plant")),
-      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("Failed to update plant")));
     } finally {
-      setState(() => _loading = false);
+      if (mounted) setState(() => _loading = false);
     }
   }
 
   Future<void> _delete() async {
-    final uid = FirebaseAuth.instance.currentUser!.uid;
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
 
-    await FirebaseFirestore.instance
-        .collection('users')
-        .doc(uid)
-        .collection('plants')
-        .doc(widget.plantId)
-        .delete();
-
-    if (!mounted) return;
-    Navigator.pop(context);
+    if (_loading) return;
+    setState(() => _loading = true);
+    try {
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(uid)
+          .collection('plants')
+          .doc(widget.plantId)
+          .delete();
+      if (!mounted) return;
+      Navigator.pop(context);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Failed to delete plant. Please try again.'),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
   }
 
   @override
@@ -178,7 +206,7 @@ class _PlantSettingsPageState extends State<PlantSettingsPage> {
                   borderRadius: BorderRadius.circular(20),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
+                      color: Colors.black.withValues(alpha: 0.05),
                       blurRadius: 12,
                       offset: const Offset(0, 6),
                     ),
@@ -188,7 +216,6 @@ class _PlantSettingsPageState extends State<PlantSettingsPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-
                     // 🌱 HEADER
                     const Text(
                       "Edit Plant 🌿",
@@ -224,8 +251,14 @@ class _PlantSettingsPageState extends State<PlantSettingsPage> {
                       icon: Icons.place_outlined,
                       value: _location,
                       items: const [
-                        DropdownMenuItem(value: "Indoor", child: Text("Indoor")),
-                        DropdownMenuItem(value: "Outdoor", child: Text("Outdoor")),
+                        DropdownMenuItem(
+                          value: "Indoor",
+                          child: Text("Indoor"),
+                        ),
+                        DropdownMenuItem(
+                          value: "Outdoor",
+                          child: Text("Outdoor"),
+                        ),
                       ],
                       onChanged: (val) => setState(() => _location = val!),
                     ),
@@ -233,7 +266,7 @@ class _PlantSettingsPageState extends State<PlantSettingsPage> {
                     const SizedBox(height: 16),
 
                     DropdownButtonFormField<String>(
-                      value: _profile,
+                      initialValue: _profile,
                       decoration: InputDecoration(
                         labelText: "Plant Profile",
                         prefixIcon: const Icon(Icons.tune),
@@ -245,9 +278,18 @@ class _PlantSettingsPageState extends State<PlantSettingsPage> {
                         ),
                       ),
                       items: const [
-                        DropdownMenuItem(value: "Succulent", child: Text("Succulent 🌵")),
-                        DropdownMenuItem(value: "Tropical", child: Text("Tropical 🌿")),
-                        DropdownMenuItem(value: "Flowering", child: Text("Flowering 🌸")),
+                        DropdownMenuItem(
+                          value: "Succulent",
+                          child: Text("Succulent 🌵"),
+                        ),
+                        DropdownMenuItem(
+                          value: "Tropical",
+                          child: Text("Tropical 🌿"),
+                        ),
+                        DropdownMenuItem(
+                          value: "Flowering",
+                          child: Text("Flowering 🌸"),
+                        ),
                       ],
                       onChanged: (val) => setState(() => _profile = val!),
                     ),
@@ -327,27 +369,26 @@ class _PlantSettingsPageState extends State<PlantSettingsPage> {
   }
 
   Widget _dropdownField({
-  required String label,
-  required IconData icon,
-  required String value,
-  required List<DropdownMenuItem<String>> items,
-  required Function(String?) onChanged,
-}) {
-  return DropdownButtonFormField<String>(
-    value: value,
-    decoration: InputDecoration(
-      labelText: label,
-      prefixIcon: Icon(icon),
-      filled: true,
-      fillColor: Colors.grey[100],
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(14),
-        borderSide: BorderSide.none,
+    required String label,
+    required IconData icon,
+    required String value,
+    required List<DropdownMenuItem<String>> items,
+    required Function(String?) onChanged,
+  }) {
+    return DropdownButtonFormField<String>(
+      initialValue: value,
+      decoration: InputDecoration(
+        labelText: label,
+        prefixIcon: Icon(icon),
+        filled: true,
+        fillColor: Colors.grey[100],
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide.none,
+        ),
       ),
-    ),
-    items: items,
-    onChanged: onChanged,
-  );
-}
-
+      items: items,
+      onChanged: onChanged,
+    );
+  }
 }

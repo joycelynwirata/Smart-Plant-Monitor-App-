@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'widgets/auth_header_clipper.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'home_page.dart';
 import 'signup_page.dart';
 
 class LoginPage extends StatefulWidget {
@@ -17,7 +17,6 @@ class _LoginPageState extends State<LoginPage> {
 
   bool _obscure = true;
   bool _loading = false;
-  bool rememberMe = false;
 
   @override
   void dispose() {
@@ -57,17 +56,38 @@ class _LoginPageState extends State<LoginPage> {
       );
 
       if (!mounted) return;
-
-      // ✅ Navigate to HomePage
-      Navigator.pushReplacement(
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
         context,
-        MaterialPageRoute(builder: (_) => const HomePage()),
+      ).showSnackBar(SnackBar(content: Text(_friendlyAuthError(e))));
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _resetPassword() async {
+    final email = _email.text.trim();
+    if (email.isEmpty || !email.contains('@')) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Enter your email first.')));
+      return;
+    }
+    setState(() => _loading = true);
+    try {
+      await FirebaseAuth.instance.sendPasswordResetEmail(email: email);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Password reset email requested. Check your inbox.'),
+        ),
       );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(_friendlyAuthError(e))),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(_friendlyAuthError(e))));
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -76,7 +96,6 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     const primaryGreen = Color(0xFF0A3323);
-    const lightGreen = Color(0xFF839958);
 
     return Scaffold(
       backgroundColor: Color(0xFFFCFFF5),
@@ -85,7 +104,7 @@ class _LoginPageState extends State<LoginPage> {
           children: [
             // CURVED IMAGE HEADER
             ClipPath(
-              clipper: CurveClipper(),
+              clipper: AuthHeaderClipper(),
               child: Container(
                 height: 260,
                 decoration: const BoxDecoration(
@@ -130,17 +149,16 @@ class _LoginPageState extends State<LoginPage> {
                         borderRadius: BorderRadius.circular(16),
                       ),
                       child: TextFormField(
-                          controller: _email,
-                          style: const TextStyle(
-                            color: Color(0xFF48521C),  
-                            fontWeight: FontWeight.bold, // optional
-                          ),
-                          decoration: const InputDecoration(
-                            hintText: "Email",
+                        controller: _email,
+                        style: const TextStyle(
+                          color: Color(0xFF48521C),
+                          fontWeight: FontWeight.bold, // optional
+                        ),
+                        decoration: const InputDecoration(
+                          hintText: "Email",
                           prefixIcon: Icon(Icons.email),
                           border: InputBorder.none,
-                          contentPadding:
-                              EdgeInsets.symmetric(vertical: 16),
+                          contentPadding: EdgeInsets.symmetric(vertical: 16),
                         ),
                         validator: (v) {
                           final val = (v ?? "").trim();
@@ -162,16 +180,17 @@ class _LoginPageState extends State<LoginPage> {
                       child: TextFormField(
                         controller: _pass,
                         style: const TextStyle(
-                            color: Color(0xFF48521C),  
-                            fontWeight: FontWeight.bold, // optional
-                          ),
+                          color: Color(0xFF48521C),
+                          fontWeight: FontWeight.bold, // optional
+                        ),
                         obscureText: _obscure,
                         decoration: InputDecoration(
                           hintText: "Password",
                           prefixIcon: const Icon(Icons.lock),
                           border: InputBorder.none,
-                          contentPadding:
-                              const EdgeInsets.symmetric(vertical: 16),
+                          contentPadding: const EdgeInsets.symmetric(
+                            vertical: 16,
+                          ),
                           suffixIcon: IconButton(
                             onPressed: () =>
                                 setState(() => _obscure = !_obscure),
@@ -195,22 +214,9 @@ class _LoginPageState extends State<LoginPage> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Row(
-                          children: [
-                            Checkbox(
-                              value: rememberMe,
-                              onChanged: (v) {
-                                setState(() {
-                                  rememberMe = v!;
-                                });
-                              },
-                            ),
-                            const Text("Remember Me"),
-                          ],
-                        ),
-                        Text(
-                          "Forgot Password?",
-                          style: TextStyle(color: primaryGreen),
+                        TextButton(
+                          onPressed: _loading ? null : _resetPassword,
+                          child: const Text("Forgot Password?"),
                         ),
                       ],
                     ),
@@ -227,25 +233,25 @@ class _LoginPageState extends State<LoginPage> {
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(30),
                           ),
-                          padding:
-                              const EdgeInsets.symmetric(vertical: 16),
+                          padding: const EdgeInsets.symmetric(vertical: 16),
                         ),
                         child: _loading
                             ? const SizedBox(
                                 width: 18,
                                 height: 18,
                                 child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    color: Colors.white),
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
                               )
-                            :  const Text(
-  "Log In",
-  style: TextStyle(
-    color: Color(0xFFFCFFF5),
-    fontWeight: FontWeight.bold,
-    fontSize: 16,
-  ),
-),
+                            : const Text(
+                                "Log In",
+                                style: TextStyle(
+                                  color: Color(0xFFFCFFF5),
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                ),
+                              ),
                       ),
                     ),
 
@@ -263,8 +269,8 @@ class _LoginPageState extends State<LoginPage> {
                                   Navigator.push(
                                     context,
                                     MaterialPageRoute(
-                                        builder: (_) =>
-                                            const SignUpPage()),
+                                      builder: (_) => const SignUpPage(),
+                                    ),
                                   );
                                 },
                           child: Text(
@@ -286,28 +292,4 @@ class _LoginPageState extends State<LoginPage> {
       ),
     );
   }
-}
-
-// 🌊 CURVE CLIPPER
-class CurveClipper extends CustomClipper<Path> {
-  @override
-  Path getClip(Size size) {
-    Path path = Path();
-    path.lineTo(0, size.height - 60);
-
-    path.quadraticBezierTo(
-      size.width / 2,
-      size.height,
-      size.width,
-      size.height - 60,
-    );
-
-    path.lineTo(size.width, 0);
-    path.close();
-
-    return path;
-  }
-
-  @override
-  bool shouldReclip(CustomClipper<Path> oldClipper) => false;
 }

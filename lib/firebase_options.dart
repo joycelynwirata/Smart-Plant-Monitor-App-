@@ -45,6 +45,7 @@ class DefaultFirebaseOptions {
     appId: '1:1037719364189:web:d44af9e6c0f4c7475de3b4',
     messagingSenderId: '1037719364189',
     projectId: 'smart-plant-595ab',
+    databaseURL: 'https://smart-plant-595ab-default-rtdb.firebaseio.com',
     authDomain: 'smart-plant-595ab.firebaseapp.com',
     storageBucket: 'smart-plant-595ab.firebasestorage.app',
   );
@@ -54,6 +55,7 @@ class DefaultFirebaseOptions {
     appId: '1:1037719364189:ios:05ca47bf6c5d4eb25de3b4',
     messagingSenderId: '1037719364189',
     projectId: 'smart-plant-595ab',
+    databaseURL: 'https://smart-plant-595ab-default-rtdb.firebaseio.com',
     storageBucket: 'smart-plant-595ab.firebasestorage.app',
     iosBundleId: 'com.example.smartPlanterApp',
   );
@@ -63,6 +65,7 @@ class DefaultFirebaseOptions {
     appId: '1:1037719364189:ios:05ca47bf6c5d4eb25de3b4',
     messagingSenderId: '1037719364189',
     projectId: 'smart-plant-595ab',
+    databaseURL: 'https://smart-plant-595ab-default-rtdb.firebaseio.com',
     storageBucket: 'smart-plant-595ab.firebasestorage.app',
     iosBundleId: 'com.example.smartPlanterApp',
   );
@@ -72,6 +75,7 @@ class DefaultFirebaseOptions {
     appId: '1:1037719364189:android:da1cde5d194ff44f5de3b4',
     messagingSenderId: '1037719364189',
     projectId: 'smart-plant-595ab',
+    databaseURL: 'https://smart-plant-595ab-default-rtdb.firebaseio.com',
     storageBucket: 'smart-plant-595ab.firebasestorage.app',
   );
 
@@ -80,8 +84,8 @@ class DefaultFirebaseOptions {
     appId: '1:1037719364189:web:529c1617bec28ac95de3b4',
     messagingSenderId: '1037719364189',
     projectId: 'smart-plant-595ab',
+    databaseURL: 'https://smart-plant-595ab-default-rtdb.firebaseio.com',
     authDomain: 'smart-plant-595ab.firebaseapp.com',
     storageBucket: 'smart-plant-595ab.firebasestorage.app',
   );
-
 }

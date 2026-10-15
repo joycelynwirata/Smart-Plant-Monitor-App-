@@ -1,6 +1,5 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
+import 'services/plant_advice_service.dart';
 
 class AIPage extends StatefulWidget {
   final String soil;
@@ -8,6 +7,7 @@ class AIPage extends StatefulWidget {
   final String name;
   final String type;
   final String profile;
+  final PlantAdviceService? adviceService;
 
   const AIPage({
     super.key,
@@ -16,6 +16,7 @@ class AIPage extends StatefulWidget {
     required this.name,
     required this.type,
     required this.profile,
+    this.adviceService,
   });
 
   @override
@@ -25,83 +26,46 @@ class AIPage extends StatefulWidget {
 class _AIPageState extends State<AIPage> {
   String aiResponse = "Tap below to analyze your plant";
 
-  Future<String> getGeminiAdvice() async {
-   
+  bool _loading = false;
 
-    final response = await http.post(
-      Uri.parse(
-        "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=$apiKey",
-      ),
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: jsonEncode({
-        "contents": [
+  Future<String> getGeminiAdvice() =>
+      (widget.adviceService ?? PlantAdviceService()).getAdvice(
+        messages: [
           {
-            "parts": [
-              {
-                "text": """
-You are a plant monitoring system inside an automated watering app.
-
-Rules:
-- No greetings
-- No markdown or symbols
-- a paragraph long
-- friendly tone
-- Be direct and natural
-- Do NOT give generic advice
-- Always tailor insights specifically to the plant type
-
-The watering is already handled automatically by the system. Do NOT tell the user to water the plant.
-
-Focus on:
-- Whether current conditions match what THIS plant needs
-- Light suitability
-- Soil behavior
-- Any mismatch between plant needs and environment
-
-Plant name: ${widget.name}
-Plant type: ${widget.type}
-Plant profile: ${widget.profile}
-
-Sensor data:
-- Soil moisture: ${widget.soil} (higher = drier)
-- Light level: ${widget.light} lux
-
-Give specific insights for this exact plant type (e.g., lily, cactus, etc.), not general plants.
-"""
-              }
-            ]
-          }
-        ]
-      }),
-    );
-
-    print(response.body);
-
-    final data = jsonDecode(response.body);
-    return data["candidates"][0]["content"]["parts"][0]["text"];
-  }
+            'role': 'user',
+            'text':
+                'Analyze this plant: ${widget.name}. '
+                'Type: ${widget.type}. Profile: ${widget.profile}. '
+                'Soil tension: ${widget.soil} cb (higher means drier). '
+                'Light: ${widget.light} lux. Give one specific paragraph. '
+                'Watering is automated; do not tell the user to water it.',
+          },
+        ],
+      );
 
   Future<void> fetchAdvice() async {
+    if (_loading) return;
     setState(() {
+      _loading = true;
       aiResponse = "Analyzing...";
     });
 
     try {
       final result = await getGeminiAdvice();
 
+      if (!mounted) return;
       setState(() {
         aiResponse = result;
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() {
-        aiResponse = "Error getting AI response";
+        aiResponse = e.toString();
       });
+    } finally {
+      if (mounted) setState(() => _loading = false);
     }
   }
-
-  @override
 
   Widget _sensorCard({
     required String title,
@@ -120,26 +84,18 @@ Give specific insights for this exact plant type (e.g., lily, cactus, etc.), not
         children: [
           Icon(icon, color: color),
           const SizedBox(height: 10),
-          Text(
-            title,
-            style: const TextStyle(
-              fontSize: 14,
-              color: Colors.grey,
-            ),
-          ),
+          Text(title, style: const TextStyle(fontSize: 14, color: Colors.grey)),
           const SizedBox(height: 6),
           Text(
             value == "--" ? "N/A" : value,
-            style: const TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-            ),
+            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
           ),
         ],
       ),
     );
   }
 
+  @override
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.all(20),
@@ -149,10 +105,7 @@ Give specific insights for this exact plant type (e.g., lily, cactus, etc.), not
           children: [
             const Text(
               "Plant Doctor 🌱",
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             ),
 
             const SizedBox(height: 20),
@@ -169,7 +122,7 @@ Give specific insights for this exact plant type (e.g., lily, cactus, etc.), not
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: Colors.green.withOpacity(0.1),
+                      color: Colors.green.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: const Icon(Icons.eco, color: Colors.green),
@@ -229,16 +182,13 @@ Give specific insights for this exact plant type (e.g., lily, cactus, etc.), not
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(16),
               ),
-              child: Text(
-                aiResponse,
-                style: const TextStyle(fontSize: 16),
-              ),
+              child: Text(aiResponse, style: const TextStyle(fontSize: 16)),
             ),
 
             const SizedBox(height: 20),
 
             ElevatedButton.icon(
-              onPressed: fetchAdvice,
+              onPressed: _loading ? null : fetchAdvice,
               icon: const Icon(Icons.smart_toy),
               label: const Text("Analyze with AI"),
               style: ElevatedButton.styleFrom(

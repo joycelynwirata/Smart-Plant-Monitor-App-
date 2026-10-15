@@ -49,6 +49,8 @@ Firebase Realtime Database
         ↓
 Flutter Web Application
         ↓
+Authenticated Firebase Cloud Function
+        ↓
 Gemini API
         ↓
 AI Plant Care Recommendations
@@ -93,3 +95,92 @@ Users can monitor the system and manually activate watering through the Flutter 
 - Implemented historical sensor-data visualization
 - Integrated a pre-trained LLM for context-aware plant recommendations
 - Implemented automated email notifications and manual remote control
+
+## Development
+
+Source is organized by responsibility: pages in `lib/`, shared care thresholds
+in `lib/models/`, backend/device operations in `lib/services/`, and reusable UI
+(chat, sensor history charts, metrics, and the water animation) in `lib/widgets/`.
+
+```sh
+flutter pub get
+flutter analyze
+flutter test
+cd functions
+npm ci
+npm test
+```
+
+The functions runtime targets Node 24. The Firebase project configured in this
+repository is `smart-plant-595ab`. Linux Firebase configuration is not provided.
+
+## AI backend setup
+
+The Flutter app calls the authenticated `getPlantAdvice` HTTP function. Both the
+Plant Doctor and chat use this backend. No Gemini credential belongs in Flutter
+source or build flags.
+
+1. Revoke the Gemini keys previously embedded in the source, including any in Git
+   history, using Google AI Studio / Google Cloud. Removing source text does not
+   revoke a key. Firebase client configuration keys are separate and remain in
+   the client configuration.
+2. Create a replacement Gemini key and store it with Firebase Secret Manager:
+
+   ```sh
+   firebase functions:secrets:set GEMINI_API_KEY
+   ```
+
+3. Deploy the function and Firestore rules after reviewing the rules against any
+   existing deployed rules:
+
+   ```sh
+   firebase deploy --only functions:getPlantAdvice,firestore:rules
+   ```
+
+   The rules allow each signed-in user to access only their own documents and
+   deny client access to the backend quota counters. Admin SDK access bypasses
+   these rules. The backend allows ten AI requests per user per minute and caps
+   input size and output tokens. Keep signup abuse controls appropriate to your
+   deployment; per-user quotas are not a project spending cap.
+
+4. `GEMINI_MODEL` is a Firebase string parameter, defaulting to `gemini-2.5-flash`.
+   Set it to a model available to your project when deploying. A different function
+   deployment URL can be supplied with:
+
+   ```sh
+   flutter run --dart-define=PLANT_ADVICE_URL=https://YOUR_FUNCTION_URL
+   ```
+
+Backend configuration/deployment and key revocation require access to the cloud
+account; local tests make no paid AI requests and send no emails.
+
+The backend uses Firebase's [HTTP functions](https://firebase.google.com/docs/functions/http-events)
+and Gemini's [generateContent API](https://ai.google.dev/api/generate-content).
+
+## Sensor and alert behavior
+
+The existing hardware protocol uses `liveData/plant1` with numeric
+`soilMoisture` (centibars, higher means drier), `light` (lux), and `waterLevel`
+(0 empty, 1 full). Numeric strings are accepted. Incomplete/invalid readings are
+shown as unavailable and are not recorded as zeros. The `waterNow` flag follows
+the existing firmware protocol: false, then true. Firmware must acknowledge or
+reset that command; the app does not choose a pump run duration.
+
+This is a single-device setup: the dashboard, AI, alerts, and history use the
+first plant document in Firestore document-ID order. Additional plant profiles
+are editable but do not represent separately paired hardware. History is now
+stored under that plant's actual document ID. Existing history under the legacy
+`plant1` document is left intact; no migration or deletion is performed.
+
+History writes and alerts run from the sensor subscription, independently of the
+visible dashboard. Alert conditions are also checked once per minute while the
+home screen is active. Email uses the existing EmailJS service/template and
+account configuration. Cooldowns are in memory and reset when the app restarts.
+Background/reliable server-side alert delivery is not implemented. A deployed
+Firebase project must also have appropriate Realtime Database ownership rules;
+this repository does not define hardware pairing or device provisioning.
+
+Web messaging is configured for this Firebase project. FCM tokens are saved per
+signed-in user/device. Sending push notifications still requires a trusted
+server sender and platform APNs/web push setup. macOS/Android release network
+permissions are included; real hardware and cloud integration need device tests.

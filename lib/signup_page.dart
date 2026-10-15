@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'home_page.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class SignUpPage extends StatefulWidget {
@@ -15,19 +14,16 @@ class _SignUpPageState extends State<SignUpPage> {
   final _email = TextEditingController();
   final _pass = TextEditingController();
   final _name = TextEditingController();
-  final _phone = TextEditingController();
-
-  String _carrier = "Verizon";
 
   bool _obscure = true;
   bool _loading = false;
+  User? _createdUser;
 
   @override
   void dispose() {
     _email.dispose();
     _name.dispose();
     _pass.dispose();
-    _phone.dispose();
     super.dispose();
   }
 
@@ -47,55 +43,40 @@ class _SignUpPageState extends State<SignUpPage> {
     return "Sign up failed.";
   }
 
-  String getPhoneEmail(String number, String carrier) {
-    switch (carrier) {
-      case "Verizon":
-        return "$number@vtext.com";
-      case "AT&T":
-        return "$number@txt.att.net";
-      case "T-Mobile":
-        return "$number@tmomail.net";
-      default:
-        return "$number@vtext.com";
-    }
-  }
-
   Future<void> _signUp() async {
     if (!_formKey.currentState!.validate()) return;
 
+    if (_loading) return;
+    final name = _name.text.trim();
+    final email = _email.text.trim();
+    final password = _pass.text;
     setState(() => _loading = true);
     try {
-      final UserCredential cred =
-          await FirebaseAuth.instance.createUserWithEmailAndPassword(
-        email: _email.text.trim(),
-        password: _pass.text,
-      );
-
-      await cred.user?.updateDisplayName(_name.text.trim());
-      await cred.user?.reload();
-
-      final uid = cred.user!.uid;
-
-      final phoneEmail =
-          getPhoneEmail(_phone.text.trim(), _carrier);
-
-      await FirebaseFirestore.instance.collection('users').doc(uid).set({
-        'name': _name.text.trim(),
-        'email': _email.text.trim(),
-        'phoneEmail': phoneEmail,
-      });
+      final user = _createdUser ??=
+          (await FirebaseAuth.instance.createUserWithEmailAndPassword(
+            email: email,
+            password: password,
+          )).user!;
+      await user.updateDisplayName(name);
+      await user.reload();
+      await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+        'name': name,
+        'email': user.email ?? email,
+      }, SetOptions(merge: true));
 
       if (!mounted) return;
 
-      Navigator.pushAndRemoveUntil(
-        context,
-        MaterialPageRoute(builder: (_) => const HomePage()),
-        (_) => false,
-      );
+      Navigator.pop(context);
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(_friendlyAuthError(e))),
+        SnackBar(
+          content: Text(
+            _createdUser == null
+                ? _friendlyAuthError(e)
+                : 'Account created, but the profile could not be saved. Tap Save Profile to retry.',
+          ),
+        ),
       );
     } finally {
       if (mounted) setState(() => _loading = false);
@@ -123,8 +104,7 @@ class _SignUpPageState extends State<SignUpPage> {
           hintText: hint,
           prefixIcon: Icon(icon),
           border: InputBorder.none,
-          contentPadding:
-              const EdgeInsets.symmetric(vertical: 16),
+          contentPadding: const EdgeInsets.symmetric(vertical: 16),
         ),
         validator: (v) {
           if ((v ?? "").trim().isEmpty) return "$hint required";
@@ -143,8 +123,6 @@ class _SignUpPageState extends State<SignUpPage> {
       body: SingleChildScrollView(
         child: Column(
           children: [
-            
-
             const SizedBox(height: 20),
 
             Text(
@@ -170,16 +148,18 @@ class _SignUpPageState extends State<SignUpPage> {
                 child: Column(
                   children: [
                     _buildField(
-                        controller: _name,
-                        hint: "Username",
-                        icon: Icons.person),
+                      controller: _name,
+                      hint: "Username",
+                      icon: Icons.person,
+                    ),
 
                     const SizedBox(height: 16),
 
                     _buildField(
-                        controller: _email,
-                        hint: "Email",
-                        icon: Icons.email),
+                      controller: _email,
+                      hint: "Email",
+                      icon: Icons.email,
+                    ),
 
                     const SizedBox(height: 16),
 
@@ -200,14 +180,17 @@ class _SignUpPageState extends State<SignUpPage> {
                           hintText: "Password",
                           prefixIcon: const Icon(Icons.lock),
                           border: InputBorder.none,
-                          contentPadding:
-                              const EdgeInsets.symmetric(vertical: 16),
+                          contentPadding: const EdgeInsets.symmetric(
+                            vertical: 16,
+                          ),
                           suffixIcon: IconButton(
                             onPressed: () =>
                                 setState(() => _obscure = !_obscure),
-                            icon: Icon(_obscure
-                                ? Icons.visibility_off
-                                : Icons.visibility),
+                            icon: Icon(
+                              _obscure
+                                  ? Icons.visibility_off
+                                  : Icons.visibility,
+                            ),
                           ),
                         ),
                         validator: (v) {
@@ -219,36 +202,6 @@ class _SignUpPageState extends State<SignUpPage> {
                     ),
 
                     const SizedBox(height: 16),
-
-                    _buildField(
-                        controller: _phone,
-                        hint: "Phone Number",
-                        icon: Icons.phone),
-
-                    const SizedBox(height: 16),
-
-                    // CARRIER
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFDBDAAF),
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: DropdownButtonFormField<String>(
-                        value: _carrier,
-                        decoration: const InputDecoration(
-                          border: InputBorder.none,
-                        ),
-                        items: ["Verizon", "AT&T", "T-Mobile"]
-                            .map((c) => DropdownMenuItem(
-                                  value: c,
-                                  child: Text(c),
-                                ))
-                            .toList(),
-                        onChanged: (val) =>
-                            setState(() => _carrier = val!),
-                      ),
-                    ),
 
                     const SizedBox(height: 20),
 
@@ -262,15 +215,16 @@ class _SignUpPageState extends State<SignUpPage> {
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(30),
                           ),
-                          padding:
-                              const EdgeInsets.symmetric(vertical: 16),
+                          padding: const EdgeInsets.symmetric(vertical: 16),
                         ),
                         child: _loading
                             ? const CircularProgressIndicator(
                                 color: Colors.white,
                               )
-                            : const Text(
-                                "Create Account",
+                            : Text(
+                                _createdUser == null
+                                    ? 'Create Account'
+                                    : 'Save Profile',
                                 style: TextStyle(
                                   color: Color(0xFFFCFFF5),
                                   fontWeight: FontWeight.bold,
@@ -300,28 +254,4 @@ class _SignUpPageState extends State<SignUpPage> {
       ),
     );
   }
-}
-
-// 🌊 SAME CLIPPER
-class CurveClipper extends CustomClipper<Path> {
-  @override
-  Path getClip(Size size) {
-    Path path = Path();
-    path.lineTo(0, size.height - 60);
-
-    path.quadraticBezierTo(
-      size.width / 2,
-      size.height,
-      size.width,
-      size.height - 60,
-    );
-
-    path.lineTo(size.width, 0);
-    path.close();
-
-    return path;
-  }
-
-  @override
-  bool shouldReclip(CustomClipper<Path> oldClipper) => false;
 }
