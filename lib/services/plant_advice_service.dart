@@ -27,7 +27,7 @@ class PlantAdviceService {
   static const _endpoint = String.fromEnvironment(
     'PLANT_ADVICE_URL',
     defaultValue:
-        'https://us-central1-smart-plant-595ab.cloudfunctions.net/getPlantAdvice',
+        'https://smart-plant-ai-phi.vercel.app/api/advice',
   );
 
   Future<String> getAdvice({
@@ -56,6 +56,7 @@ class PlantAdviceService {
       if (response.statusCode != 200) {
         throw AdviceException(switch (response.statusCode) {
           401 => 'Your session expired. Please sign in again.',
+          403 => 'Device access requires approval from the project owner.',
           429 => 'Too many requests. Please try again in a minute.',
           503 => 'Plant advice is not configured yet. Please try again later.',
           _ => 'Plant advice is temporarily unavailable. Please try again.',

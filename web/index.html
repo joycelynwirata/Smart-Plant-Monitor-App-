@@ -18,29 +18,33 @@
 
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="A new Flutter project.">
+  <meta name="description" content="Monitor your smart planter, view sensor history, and manage plant care.">
 
   <!-- iOS meta tags & icons -->
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <meta name="apple-mobile-web-app-title" content="smart_planter_app">
+  <meta name="apple-mobile-web-app-title" content="Smart Planter">
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
 
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="favicon.png"/>
 
-  <title>smart_planter_app</title>
+  <title>Smart Planter</title>
   <link rel="manifest" href="manifest.json">
 </head>
-<script>
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('firebase-messaging-sw.js')
-    .then(function(registration) {
-      console.log('Service Worker registered');
-    });
-}
-</script>
 <body>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function () {
+        navigator.serviceWorker.register('firebase-messaging-sw.js', {
+          scope: '/firebase-cloud-messaging-push-scope'
+        }).catch(function () {
+          // Notifications are optional; registration failure must not block the app.
+          console.warn('Push notifications are unavailable in this browser.');
+        });
+      });
+    }
+  </script>
   <!-- Flutter -->
   <script src="flutter_bootstrap.js" async></script>
 </body>

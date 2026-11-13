@@ -1,3 +1,10 @@
+# Current deployment preparation
+
+See [the free deployment plan](docs/FREE_DEPLOYMENT.md) for Firebase Hosting plus
+the free AI backend. The website is live at https://smart-plant-595ab.web.app;
+AI Plant Doctor is deployed and a real authenticated response has passed.
+Billing remains disabled and live security rules are unchanged.
+
 # Smart Plant Monitor & Irrigation System
 
 A smart plant monitoring and automated irrigation system that combines IoT sensors, an ESP32 microcontroller, a Flutter web application, Firebase, and AI-powered plant care assistance.
@@ -25,7 +32,7 @@ The application also integrates Google's Gemini AI to provide contextual plant-c
 
 ## AI / Machine Learning Integration
 
-The application integrates the **Gemini 2.5 Flash** large language model through the Gemini API.
+The application integrates a configurable **Google Gemini** language model through the Gemini API.
 
 Gemini is used primarily for **inference** rather than model training or fine-tuning. Real-time plant information, including soil moisture and light conditions, can be incorporated into prompts to provide context-aware plant care recommendations.
 
@@ -111,51 +118,39 @@ npm ci
 npm test
 ```
 
-The functions runtime targets Node 24. The Firebase project configured in this
+The functions runtime targets Node 22. The Firebase project configured in this
 repository is `smart-plant-595ab`. Linux Firebase configuration is not provided.
 
 ## AI backend setup
 
-The Flutter app calls the authenticated `getPlantAdvice` HTTP function. Both the
-Plant Doctor and chat use this backend. No Gemini credential belongs in Flutter
-source or build flags.
+The Flutter app calls the authenticated Vercel endpoint at
+`https://smart-plant-ai-phi.vercel.app/api/advice`. Plant Doctor and chat share
+this backend. The Gemini key is stored only as a Sensitive Production Vercel
+environment variable. No Gemini credential belongs in Flutter source or build flags.
 
-1. Revoke the Gemini keys previously embedded in the source, including any in Git
-   history, using Google AI Studio / Google Cloud. Removing source text does not
-   revoke a key. Firebase client configuration keys are separate and remain in
-   the client configuration.
-2. Create a replacement Gemini key and store it with Firebase Secret Manager:
+The free deployment is live. See [deployment and redeployment details](docs/FREE_DEPLOYMENT.md).
+Firebase Hosting uses the existing project; the AI backend runs on Vercel Hobby
+with Node 22 and a free-tier Gemini key. No Blaze upgrade or rule deployment was
+performed. Both email/password and anonymous Firebase Authentication remain enabled.
 
-   ```sh
-   firebase functions:secrets:set GEMINI_API_KEY
-   ```
+Registered users can use AI without separate enrollment. The Vercel endpoint
+verifies Firebase tokens without Firebase service-account credentials or database
+access. Its ten-request/minute limiter is per warm instance; Gemini free-tier
+quotas are the global bound. The default model is `gemini-3.5-flash-lite` and
+`GEMINI_MODEL` is an optional server environment override. Keep API billing disabled.
+The legacy Firebase Function remains an undeployed alternative requiring Blaze;
+do not run a general Firebase deploy or publish the draft rules.
 
-3. Deploy the function and Firestore rules after reviewing the rules against any
-   existing deployed rules:
+Redeploy the website from the repository root:
 
-   ```sh
-   firebase deploy --only functions:getPlantAdvice,firestore:rules
-   ```
+```sh
+flutter build web --release
+firebase deploy --only hosting --project smart-plant-595ab
+```
 
-   The rules allow each signed-in user to access only their own documents and
-   deny client access to the backend quota counters. Admin SDK access bypasses
-   these rules. The backend allows ten AI requests per user per minute and caps
-   input size and output tokens. Keep signup abuse controls appropriate to your
-   deployment; per-user quotas are not a project spending cap.
-
-4. `GEMINI_MODEL` is a Firebase string parameter, defaulting to `gemini-2.5-flash`.
-   Set it to a model available to your project when deploying. A different function
-   deployment URL can be supplied with:
-
-   ```sh
-   flutter run --dart-define=PLANT_ADVICE_URL=https://YOUR_FUNCTION_URL
-   ```
-
-Backend configuration/deployment and key revocation require access to the cloud
-account; local tests make no paid AI requests and send no emails.
-
-The backend uses Firebase's [HTTP functions](https://firebase.google.com/docs/functions/http-events)
-and Gemini's [generateContent API](https://ai.google.dev/api/generate-content).
+For backend changes, run `npx vercel deploy --prod --yes --scope joy-1479` from
+`functions`. Revoke any previously exposed Gemini keys in their owning account;
+removing them from source does not revoke them.
 
 ## Sensor and alert behavior
 

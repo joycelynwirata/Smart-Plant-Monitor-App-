@@ -13,7 +13,8 @@ void main() {
     final client = MockClient((request) async {
       expect(request.headers['Authorization'], 'Bearer test-token');
       expect(jsonDecode(request.body)['messages'], messages);
-      expect(request.url.host, endsWith('cloudfunctions.net'));
+      expect(request.url.host, 'smart-plant-ai-phi.vercel.app');
+      expect(request.url.path, '/api/advice');
       return http.Response('{"advice":"More indirect light."}', 200);
     });
     final service = PlantAdviceService(
@@ -34,7 +35,7 @@ void main() {
     );
   });
 
-  for (final status in [401, 429, 500, 503]) {
+  for (final status in [401, 403, 429, 500, 503]) {
     test(
       'Handles HTTP $status without parsing an upstream error as advice',
       () async {

@@ -1,0 +1,31 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "deviceAccess": {
+      "plant1": {
+        "operators": {
+          "$uid": {
+            ".read": "auth != null && auth.uid === $uid && auth.token.firebase.sign_in_provider !== 'anonymous'"
+          }
+        }
+      }
+    },
+    "liveData": {
+      "plant1": {
+        ".read": "auth != null && ((auth.token.firebase.sign_in_provider !== 'anonymous' && root.child('deviceAccess/plant1/operators').child(auth.uid).val() === true) || (auth.token.firebase.sign_in_provider === 'anonymous' && root.child('deviceAccess/plant1/devices').child(auth.uid).val() === true))",
+        ".write": "auth != null && auth.token.firebase.sign_in_provider === 'anonymous' && root.child('deviceAccess/plant1/devices').child(auth.uid).val() === true",
+        "waterNow": {
+          ".write": "auth != null && auth.token.firebase.sign_in_provider !== 'anonymous' && root.child('deviceAccess/plant1/operators').child(auth.uid).val() === true && newData.isBoolean()",
+          ".validate": "auth != null && (auth.token.firebase.sign_in_provider !== 'anonymous' || newData.val() !== true || data.val() === true)"
+        }
+      }
+    },
+    "history": {
+      "plant1": {
+        ".read": "auth != null && ((auth.token.firebase.sign_in_provider !== 'anonymous' && root.child('deviceAccess/plant1/operators').child(auth.uid).val() === true) || (auth.token.firebase.sign_in_provider === 'anonymous' && root.child('deviceAccess/plant1/devices').child(auth.uid).val() === true))",
+        ".write": "auth != null && auth.token.firebase.sign_in_provider === 'anonymous' && root.child('deviceAccess/plant1/devices').child(auth.uid).val() === true"
+      }
+    }
+  }
+}

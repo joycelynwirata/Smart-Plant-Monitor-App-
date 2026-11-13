@@ -1,0 +1,7 @@
+.env
+.env.*
+.secret.local
+*service-account*.json
+node_modules
+*.test.js
+manage-device-access.cjs

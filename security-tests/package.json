@@ -1,0 +1,12 @@
+{
+  "name": "smart-planter-security-tests",
+  "private": true,
+  "scripts": {
+    "test": "firebase emulators:exec --only firestore,database --project demo-smart-planter --config ../firebase.security-test.json \"node --test rules.test.cjs\"",
+    "test:workflow": "firebase emulators:exec --only auth,firestore,database --project demo-smart-planter --config ../firebase.security-test.json \"node --test workflow.test.cjs\""
+  },
+  "devDependencies": {
+    "@firebase/rules-unit-testing": "^4.0.1",
+    "firebase": "^11.10.0"
+  }
+}

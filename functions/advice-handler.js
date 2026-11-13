@@ -2,7 +2,7 @@
 
 // Dependencies are injected so authentication and upstream failures can be tested
 // without calling Firebase or Gemini.
-function createAdviceHandler({ verifyToken, consumeQuota, generateAdvice }) {
+function createAdviceHandler({ verifyToken, isAuthorized, consumeQuota, generateAdvice }) {
   return async (req, res) => {
     res.set("Cache-Control", "no-store");
     res.set("Access-Control-Allow-Origin", "*");
@@ -27,6 +27,9 @@ function createAdviceHandler({ verifyToken, consumeQuota, generateAdvice }) {
       return res.status(400).json({ error: "Provide 1–20 messages, ending with a user message." });
     }
     try {
+      if (!await isAuthorized(user)) {
+        return res.status(403).json({ error: "Device access requires approval." });
+      }
       if (!await consumeQuota(user.uid)) {
         return res.status(429).json({ error: "Too many requests." });
       }

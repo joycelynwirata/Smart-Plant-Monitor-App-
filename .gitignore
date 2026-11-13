@@ -48,3 +48,12 @@ app.*.map.json
 functions/.secret.local
 functions/.env*
 !functions/.env.example
+
+# Firebase CLI deployment cache and local logs
+.firebase/
+firebase-debug.log*
+ui-debug.log*
+
+# Optional AI host metadata and private service-account files
+.vercel/
+**/*service-account*.json

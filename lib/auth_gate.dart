@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'login_page.dart';
+import 'device_access_gate.dart';
 import 'home_page.dart';
 
 class AuthGate extends StatelessWidget {
@@ -8,6 +9,13 @@ class AuthGate extends StatelessWidget {
 
   final Stream<User?>? authChanges;
   final Widget Function(BuildContext, User)? signedInBuilder;
+
+  // Keep the existing sign-up-and-use workflow for the initial deployment.
+  // Approval remains an opt-in option for a later coordinated rules rollout.
+  static const requireDeviceApproval = bool.fromEnvironment(
+    'REQUIRE_DEVICE_APPROVAL',
+    defaultValue: false,
+  );
 
   @override
   Widget build(BuildContext context) => StreamBuilder<User?>(
@@ -28,7 +36,9 @@ class AuthGate extends StatelessWidget {
       final user = snapshot.data;
       if (user != null) {
         return signedInBuilder?.call(context, user) ??
-            HomePage(key: ValueKey(user.uid));
+            (requireDeviceApproval
+                ? DeviceAccessGate(key: ValueKey(user.uid), user: user)
+                : HomePage(key: ValueKey(user.uid)));
       }
       return const LoginPage();
     },

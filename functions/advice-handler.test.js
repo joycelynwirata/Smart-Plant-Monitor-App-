@@ -10,6 +10,7 @@ async function request(overrides = {}, dependencies = {}) {
       assert.equal(token, "valid-token");
       return { uid: "user-1" };
     },
+    isAuthorized: async () => true,
     consumeQuota: async () => true,
     generateAdvice: async () => { generated = true; return "Bright indirect light."; },
     ...dependencies,
@@ -61,6 +62,14 @@ test("validates message structure and size", async () => {
 test("enforces per-user quota before generating", async () => {
   const result = await request({}, { consumeQuota: async () => false });
   assert.equal(result.code, 429);
+  assert.equal(result.generated, false);
+});
+test("rejects signed-in users without device approval before quota or AI", async () => {
+  const result = await request({}, {
+    isAuthorized: async () => false,
+    consumeQuota: async () => { throw new Error("Quota must not be used"); },
+  });
+  assert.equal(result.code, 403);
   assert.equal(result.generated, false);
 });
 test("handles empty or blocked model responses", async () => {
